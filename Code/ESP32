@@ -1,0 +1,81 @@
+#include <PZEM004Tv30.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+// ---------- OLED SETTINGS ----------
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET    -1
+#define OLED_ADDR     0x3C
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// ---------- PZEM SETTINGS ----------
+// TX -> GPIO16, RX -> GPIO17
+PZEM004Tv30 pzem(Serial2, 16, 17);
+
+void setup() {
+  Serial.begin(9600);
+  Serial2.begin(9600);
+
+  // OLED init
+  Wire.begin(21, 22);
+  if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
+    Serial.println("OLED not found");
+    while (true);
+  }
+
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.println("Energy Monitor");
+  display.println("ESP32 + PZEM");
+  display.display();
+  delay(2000);
+}
+
+void loop() {
+
+  float voltage   = pzem.voltage();
+  float current   = pzem.current();
+  float power     = pzem.power();
+  float energy    = pzem.energy();
+  float frequency = pzem.frequency();
+  float pf        = pzem.pf();
+
+  display.clearDisplay();
+  display.setCursor(0, 0);
+
+  if (isnan(voltage)) {
+    // ---- NO AC SUPPLY ----
+    Serial.println("No AC supply / PZEM not connected");
+
+    display.println("NO AC SUPPLY");
+    display.println("Check Wiring");
+  } else {
+    // ---- SERIAL OUTPUT ----
+    Serial.println("------ ENERGY DATA ------");
+    Serial.print("Voltage   : "); Serial.print(voltage); Serial.println(" V");
+    Serial.print("Current   : "); Serial.print(current); Serial.println(" A");
+    Serial.print("Power     : "); Serial.print(power);   Serial.println(" W");
+    Serial.print("Energy    : "); Serial.print(energy);  Serial.println(" Wh");
+    Serial.print("Frequency : "); Serial.print(frequency); Serial.println(" Hz");
+    Serial.print("PF        : "); Serial.println(pf);
+    Serial.println("-------------------------");
+
+    // ---- OLED DISPLAY ----
+    display.print("V: "); display.print(voltage, 1); display.println(" V");
+    display.print("I: "); display.print(current, 2); display.println(" A");
+    display.print("P: "); display.print(power, 1);   display.println(" W");
+    display.print("E: "); display.print(energy, 2);  display.println(" Wh");
+    display.print("F: "); display.print(frequency,1); display.println(" Hz");
+    display.print("PF: "); display.println(pf, 2);
+  }
+
+  display.display();
+  delay(1000); // refresh every 1 second
+}
+
+ explain the code
